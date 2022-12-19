@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using WebAPI.CustomExceptions;
 using WebAPI.Extensibility;
 using WebAPI.Models.DTOs;
+using WebAPI.Models.Entities;
 
 namespace WebAPI.Controllers
 {
@@ -27,25 +29,50 @@ namespace WebAPI.Controllers
         [HttpPost]
         public async Task<ActionResult> AddProduct(CreateProductDto product)
         {
-            var result = await productRepository.AddProduct(product);
-            logger.LogInformation($"Product #{result.Id} added");
-            return Ok(result);
+            try
+            {
+                var result = await productRepository.AddProduct(product);
+                logger.LogInformation($"Product #{result.Id} added");
+                return Ok(result);
+            }
+            catch (ValidationException)
+            {
+                return BadRequest();
+            }
         }
 
         [HttpPut]
         public async Task<ActionResult> EditProduct(ProductDto product)
         {
-            await productRepository.EditProduct(product);
-            logger.LogInformation($"Product #{product.Id} edited");
-            return Ok();
+            try
+            {
+                await productRepository.EditProduct(product);
+                logger.LogInformation($"Product #{product.Id} edited");
+                return Ok();
+            }
+            catch (ValidationException)
+            {
+                return BadRequest();
+            }
+            catch(NotFoundException)
+            {
+                return NotFound();
+            }
         }
 
         [HttpDelete]
         public async Task<ActionResult> DeleteProduct(int id)
         {
-            await productRepository.DeleteProduct(id);
-            logger.LogInformation($"Product #{id} deleted");
-            return Ok();
+            try
+            {
+                await productRepository.DeleteProduct(id);
+                logger.LogInformation($"Product #{id} deleted");
+                return Ok();
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
         }
     }
 }

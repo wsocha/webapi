@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using WebAPI.CustomExceptions;
 using WebAPI.DAL;
 using WebAPI.Extensibility;
 using WebAPI.Models.DTOs;
@@ -17,6 +19,11 @@ namespace WebAPI.Repositories
 
         public async Task<ProductDto> AddProduct(CreateProductDto productDto)
         {
+            if (productDto == null || string.IsNullOrWhiteSpace(productDto.Name) || string.IsNullOrWhiteSpace(productDto.Description))
+            {
+                throw new ValidationException("Invalid model");
+            }
+
             var newProduct = new Product()
             {
                 Name = productDto.Name,
@@ -38,16 +45,31 @@ namespace WebAPI.Repositories
             {
                 Id = id
             };
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+            }
+            catch(Exception e)
+            {
+                if (e.Message == "Attempted to update or delete an entity that does not exist in the store.") // TODO: Do it without hardocoded string
+                {
+                    throw new NotFoundException("Product not found");
+                }
+                throw;
+            }
         }
 
         public async Task EditProduct(ProductDto productDto)
         {
+            if (productDto == null || string.IsNullOrWhiteSpace(productDto.Name) || string.IsNullOrWhiteSpace(productDto.Description))
+            {
+                throw new ValidationException("Invalid model");
+            }
             var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productDto.Id);
             if (product == null)
             {
-                throw new Exception("Product not found");
+                throw new NotFoundException("Product not found");
             }
             product.Name = productDto.Name;
             product.Description = productDto.Description;
